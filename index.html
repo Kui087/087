@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>087</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'SimSun', 'STSong', serif;
+        }
+        #welcome-text {
+            font-size: 24px;
+            color: #000;
+            white-space: nowrap;
+            margin-bottom: 20px;
+        }
+        #enter-text {
+            font-size: 18px;
+            color: #666;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        #enter-text:hover {
+            color: #000;
+        }
+        #cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background-color: #000;
+            animation: blink 0.7s infinite;
+            margin-left: 2px;
+            vertical-align: middle;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 0 }
+            50% { opacity: 1 }
+        }
+        @media screen and (min-width: 390px) and (max-width: 430px) {
+            #welcome-text { font-size: 28px; }
+            #enter-text { font-size: 20px; }
+        }
+        @media screen and (min-width: 428px) and (max-width: 932px) {
+            #welcome-text { font-size: 32px; }
+            #enter-text { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="welcome-text"></div>
+    <div id="enter-text">点击进入</div>
+    <script>
+        function lockPortrait() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('portrait').catch(function(error) {
+                    console.log('无法锁定屏幕方向: ', error);
+                });
+            }
+        }
+        lockPortrait();
+
+        const text = "欢迎来到087";
+        const welcomeText = document.getElementById('welcome-text');
+        const enterText = document.getElementById('enter-text');
+        let index = 0;
+
+        function typeWriter() {
+            if (index < text.length) {
+                welcomeText.innerHTML += text.charAt(index);
+                index++;
+                setTimeout(typeWriter, 200);
+            } else {
+                welcomeText.innerHTML += '<span id="cursor"></span>';
+                setTimeout(() => {
+                    enterText.style.opacity = '1';
+                }, 500);
+            }
+        }
+
+        enterText.addEventListener('click', () => {
+            window.location.href = 'menu.html'; // 确保这行代码存在且正确
+        });
+
+        window.onload = typeWriter;
+    </script>
+</body>
+</html>

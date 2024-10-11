@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>087 - 俄罗斯方块</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 240px;
+            height: 440px; /* 增加高度以容纳分数 */
+            border: 2px solid #333;
+            margin-top: 20px;
+        }
+        #score-container {
+            width: 100%;
+            height: 40px;
+            background-color: #333;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+        #game-board {
+            width: 100%;
+            height: 400px;
+            background-color: #fff;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .control-btn {
+            width: 50px;
+            height: 50px;
+            margin: 0 5px;
+            font-size: 20px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        #pause-btn {
+            margin-top: 10px;
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: auto;  /* 移除固定宽度 */
+            border-radius: 5px;  /* 恢复为普通按钮形状 */
+            transform: translateY(-0.3em); /* 向上移动一个字符的距离 */
+        }
+        .button-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .game-btn {
+            margin: 0 5px;
+            padding: 8px 16px;
+            font-size: 16px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score-container">分数: <span id="score">0</span></div>
+        <canvas id="game-board" width="240" height="400"></canvas>
+    </div>
+    <div class="button-container">
+        <button class="game-btn" id="restart-btn">重来</button>
+        <button class="game-btn" id="pause-btn">暂停</button>
+        <button class="game-btn" id="menu-btn">菜单</button>
+    </div>
+    <div class="controls">
+        <button class="control-btn" id="left-btn">←</button>
+        <button class="control-btn" id="down-btn">↓</button>
+        <button class="control-btn" id="right-btn">→</button>
+        <button class="control-btn" id="rotate-btn">↻</button>
+    </div>
+    <script>
+        const canvas = document.getElementById('game-board');
+        const ctx = canvas.getContext('2d');
+        const BLOCK_SIZE = 20;
+        const BOARD_WIDTH = 12;
+        const BOARD_HEIGHT = 20;
+        const DROP_INTERVAL = 1000; // 每秒下落一格
+
+        let board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+        let currentPiece = null;
+        let dropCounter = 0;
+        let lastTime = 0;
+        let score = 0;
+        let isPaused = false;
+
+        const scoreElement = document.getElementById('score');
+        const pauseBtn = document.getElementById('pause-btn');
+        const menuBtn = document.getElementById('menu-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        function createPiece() {
+            const pieces = [
+                [[1, 1, 1, 1]],
+                [[1, 1], [1, 1]],
+                [[1, 1, 1], [0, 1, 0]],
+                [[1, 1, 1], [1, 0, 0]],
+                [[1, 1, 1], [0, 0, 1]],
+                [[1, 1, 0], [0, 1, 1]],
+                [[0, 1, 1], [1, 1, 0]]
+            ];
+            const randomPiece = pieces[Math.floor(Math.random() * pieces.length)];
+            return {
+                shape: randomPiece,
+                x: Math.floor(BOARD_WIDTH / 2) - Math.floor(randomPiece[0].length / 2),
+                y: 0
+            };
+        }
+
+        function drawBoard() {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    if (board[y][x]) {
+                        ctx.fillStyle = '#333';
+                        ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                    }
+                }
+            }
+        }
+
+        function drawPiece() {
+            ctx.fillStyle = '#f00';
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        ctx.fillRect((currentPiece.x + x) * BLOCK_SIZE, (currentPiece.y + y) * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+                    }
+                });
+            });
+        }
+
+        function moveDown() {
+            currentPiece.y++;
+            if (collision()) {
+                currentPiece.y--;
+                mergePiece();
+                const clearedLines = clearLines();
+                updateScore(clearedLines);
+                currentPiece = createPiece();
+                if (collision()) {
+                    alert('游戏结束！最终得分：' + score);
+                    resetGame();
+                }
+            }
+            dropCounter = 0;
+        }
+
+        function moveLeft() {
+            currentPiece.x--;
+            if (collision()) {
+                currentPiece.x++;
+            }
+        }
+
+        function moveRight() {
+            currentPiece.x++;
+            if (collision()) {
+                currentPiece.x--;
+            }
+        }
+
+        function rotate() {
+            const rotated = currentPiece.shape[0].map((_, i) => currentPiece.shape.map(row => row[i]).reverse());
+            const previousShape = currentPiece.shape;
+            currentPiece.shape = rotated;
+            if (collision()) {
+                currentPiece.shape = previousShape;
+            }
+        }
+
+        function collision() {
+            return currentPiece.shape.some((row, y) => {
+                return row.some((value, x) => {
+                    if (value) {
+                        const boardX = currentPiece.x + x;
+                        const boardY = currentPiece.y + y;
+                        return boardX < 0 || boardX >= BOARD_WIDTH || boardY >= BOARD_HEIGHT || (boardY >= 0 && board[boardY][boardX]);
+                    }
+                    return false;
+                });
+            });
+        }
+
+        function mergePiece() {
+            currentPiece.shape.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value) {
+                        board[currentPiece.y + y][currentPiece.x + x] = value;
+                    }
+                });
+            });
+        }
+
+        function clearLines() {
+            let linesCleared = 0;
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (board[y].every(cell => cell)) {
+                    board.splice(y, 1);
+                    board.unshift(Array(BOARD_WIDTH).fill(0));
+                    linesCleared++;
+                    y++; // 重新检查当前，因为上面的行已经下移
+                }
+            }
+            return linesCleared;
+        }
+
+        function updateScore(linesCleared) {
+            const points = [0, 40, 100, 300, 1200]; // 0, 1, 2, 3, 4 行的得分
+            score += points[linesCleared];
+            scoreElement.textContent = score;
+        }
+
+        function resetGame() {
+            board = Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0));
+            score = 0;
+            scoreElement.textContent = score;
+            currentPiece = createPiece();
+            dropCounter = 0;
+            isPaused = false;
+            pauseBtn.textContent = '暂停';
+        }
+
+        function restartGame() {
+            if (confirm('确定要重新开始游戏吗？当前游戏进度将丢失。')) {
+                resetGame();
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? '继续' : '暂停';
+            if (!isPaused) {
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function returnToMenu() {
+            if (confirm('确定要返回菜单吗？当前游戏进度将丢失。')) {
+                window.location.href = 'menu.html';
+            }
+        }
+
+        function hardDrop() {
+            while (!collision()) {
+                currentPiece.y++;
+            }
+            currentPiece.y--;
+            mergePiece();
+            const clearedLines = clearLines();
+            updateScore(clearedLines);
+            currentPiece = createPiece();
+            if (collision()) {
+                alert('游戏结束！最终得分：' + score);
+                resetGame();
+            }
+            dropCounter = 0;
+        }
+
+        let lastClickTime = 0;
+        const doubleClickDelay = 300; // 双击间隔时间（毫秒）
+
+        function handleDownButton(event) {
+            const currentTime = new Date().getTime();
+            if (currentTime - lastClickTime < doubleClickDelay) {
+                // 双击
+                hardDrop();
+            } else {
+                // 单击
+                moveDown();
+            }
+            lastClickTime = currentTime;
+        }
+
+        function gameLoop(time = 0) {
+            if (isPaused) return;
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            dropCounter += deltaTime;
+            if (dropCounter > DROP_INTERVAL) {
+                moveDown();
+            }
+
+            drawBoard();
+            drawPiece();
+            requestAnimationFrame(gameLoop);
+        }
+
+        currentPiece = createPiece();
+        gameLoop();
+
+        document.getElementById('left-btn').addEventListener('click', moveLeft);
+        document.getElementById('right-btn').addEventListener('click', moveRight);
+        document.getElementById('down-btn').addEventListener('click', handleDownButton);
+        document.getElementById('rotate-btn').addEventListener('click', rotate);
+        pauseBtn.addEventListener('click', togglePause);
+        menuBtn.addEventListener('click', returnToMenu);
+        restartBtn.addEventListener('click', restartGame);
+
+        document.addEventListener('keydown', (e) => {
+            if (isPaused && e.key !== 'p') return;
+            switch (e.key) {
+                case 'ArrowLeft':
+                    moveLeft();
+                    break;
+                case 'ArrowRight':
+                    moveRight();
+                    break;
+                case 'ArrowDown':
+                    moveDown();
+                    break;
+                case 'ArrowUp':
+                    rotate();
+                    break;
+                case ' ':
+                    hardDrop();
+                    break;
+                case 'p':
+                    togglePause();
+                    break;
+                case 'r':
+                    restartGame();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>

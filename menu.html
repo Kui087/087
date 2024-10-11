@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>087 - 游戏选择</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'SimSun', 'STSong', serif;
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 40px;
+            color: #333;
+        }
+        .menu-item {
+            font-size: 22px;
+            margin: 15px 0;
+            cursor: pointer;
+            padding: 10px 20px;
+            border: 2px solid #333;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .menu-item:hover {
+            background-color: #333;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>请选择游戏</h1>
+    <div class="menu-item" id="tetris">俄罗斯方块</div>
+    <div class="menu-item" id="snake">贪吃蛇</div>
+    <script>
+        function lockPortrait() {
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('portrait').catch(function(error) {
+                    console.log('无法锁定屏幕方向: ', error);
+                });
+            }
+        }
+        lockPortrait();
+
+        // 添加点击事件监听器
+        document.getElementById('tetris').addEventListener('click', function() {
+            window.location.href = 'tetris.html';
+        });
+
+        document.getElementById('snake').addEventListener('click', function() {
+            window.location.href = 'snake.html';
+        });
+    </script>
+</body>
+</html>
